@@ -1,0 +1,208 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JARVIS AI</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  background: #050b16;
+  color: #eafaff;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+}
+
+header {
+  text-align: center;
+  color: #00d9ff;
+  letter-spacing: 6px;
+  padding: 20px;
+  text-shadow: 0 0 15px #00d9ff;
+}
+
+.reactor {
+  width: 120px;
+  height: 120px;
+  border: 3px solid #00d9ff;
+  border-radius: 50%;
+  margin: 20px auto;
+  display: grid;
+  place-items: center;
+  font-size: 45px;
+  color: #00d9ff;
+  box-shadow: 0 0 30px #008cff;
+}
+
+#chat {
+  height: 350px;
+  overflow-y: auto;
+  background: #091525;
+  border: 1px solid #00aacc;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.message {
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.user { background: #123e5c; }
+.jarvis { background: #102c35; }
+
+form {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+input {
+  flex: 1;
+  min-width: 0;
+  padding: 13px;
+  background: #102030;
+  border: 1px solid #00d9ff;
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+}
+
+button {
+  padding: 12px;
+  border: 1px solid #00d9ff;
+  border-radius: 8px;
+  background: #07334b;
+  color: white;
+}
+
+#mic {
+  width: 100%;
+  margin-top: 10px;
+}
+
+footer {
+  text-align: center;
+  margin-top: 25px;
+  color: #00d9ff;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>J.A.R.V.I.S</h1>
+  <p>● SYSTEM ONLINE</p>
+</header>
+
+<div class="reactor">✦</div>
+
+<h3>PERSONAL AI ASSISTANT</h3>
+
+<div id="chat">
+  <div class="message jarvis">
+    JARVIS: Hello! How may I help you?
+  </div>
+</div>
+
+<form id="form">
+  <input id="input"
+    placeholder="Talk to JARVIS..."
+    autocomplete="off" required>
+  <button type="submit">SEND</button>
+</form>
+
+<button id="mic">🎙️ SPEAK TO JARVIS</button>
+
+<script>
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+const form = document.getElementById("form");
+
+let history = [];
+
+function addMessage(text, type) {
+  const div = document.createElement("div");
+  div.className = "message " + type;
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function speak(text) {
+  if ("speechSynthesis" in window) {
+    speechSynthesis.cancel();
+    const voice = new SpeechSynthesisUtterance(text);
+    voice.lang = "en-US";
+    speechSynthesis.speak(voice);
+  }
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const message = input.value.trim();
+  if (!message) return;
+
+  input.value = "";
+  addMessage("YOU: " + message, "user");
+
+  history.push({role: "user", content: message});
+
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({message})
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) throw new Error(data.error);
+
+    const reply = data.reply;
+
+    history.pop();
+    addMessage("JARVIS: " + reply, "jarvis");
+    speak(reply);
+
+  } catch (error) {
+    history.pop();
+    addMessage("ERROR: " + error.message, "jarvis");
+  }
+});
+
+document.getElementById("mic").onclick = () => {
+  const Recognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  if (!Recognition) {
+    alert("Speech recognition is not supported.");
+    return;
+  }
+
+  const recognition = new Recognition();
+  recognition.lang = "en-US";
+
+  recognition.onresult = (event) => {
+    input.value = event.results[0][0].transcript;
+    form.requestSubmit();
+  };
+
+  recognition.start();
+};
+</script>
+
+<footer>JARVIS AI — VERSION 1.0</footer>
+
+</body>
+</html>
